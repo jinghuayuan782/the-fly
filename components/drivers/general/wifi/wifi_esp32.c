@@ -283,7 +283,7 @@ void wifiInit(void)
         .ap = {
             .channel = WIFI_CH,
             .max_connection = WIFI_MAX_STA_CONN,
-            .authmode = WIFI_AUTH_WPA2_PSK,
+            .authmode = WIFI_AUTH_WPA_WPA2_PSK,
             .pmf_cfg = {
                 .required = false,
             },
