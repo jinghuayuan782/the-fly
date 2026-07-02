@@ -40,6 +40,7 @@
 
 #include "stm32_legacy.h"
 #include "i2c_drv.h"
+#include "i2cdev.h"
 #include "config.h"
 #define DEBUG_MODULE "I2CDRV"
 #include "debug_cf.h"
@@ -58,7 +59,7 @@ static const I2cDef sensorBusDef = {
     .i2cClockSpeed      = I2C_DEFAULT_SENSORS_CLOCK_SPEED,
     .gpioSCLPin         = CONFIG_I2C0_PIN_SCL,
     .gpioSDAPin         = CONFIG_I2C0_PIN_SDA,
-    .gpioPullup         = GPIO_PULLUP_DISABLE,
+    .gpioPullup         = GPIO_PULLUP_ENABLE,
 };
 
 I2cDrv sensorsBus = {
@@ -112,5 +113,36 @@ void i2cdrvInit(I2cDrv *i2c)
 void i2cdrvTryToRestartBus(I2cDrv *i2c)
 {
     i2cdrvInitBus(i2c);
+}
+
+void i2cdrvScanBus(I2cDrv *i2c)
+{
+    uint8_t addr;
+    int found_count = 0;
+    
+    DEBUG_PRINTI("Scanning I2C bus %d...\n", i2c->def->i2cPort);
+    
+    for (addr = 0x03; addr < 0x78; addr++) {
+        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, I2C_MASTER_ACK_EN);
+        i2c_master_stop(cmd);
+        
+        esp_err_t ret = i2c_master_cmd_begin(i2c->def->i2cPort, cmd, 50 / portTICK_PERIOD_MS);
+        i2c_cmd_link_delete(cmd);
+        
+        if (ret == ESP_OK) {
+            DEBUG_PRINTI("Found device at address: 0x%02X\n", addr);
+            found_count++;
+        } else if (ret == ESP_ERR_TIMEOUT) {
+            DEBUG_PRINTD("Timeout at address: 0x%02X\n", addr);
+        }
+    }
+    
+    if (found_count == 0) {
+        DEBUG_PRINTE("No I2C devices found on bus %d\n", i2c->def->i2cPort);
+    } else {
+        DEBUG_PRINTI("Total %d I2C devices found\n", found_count);
+    }
 }
 

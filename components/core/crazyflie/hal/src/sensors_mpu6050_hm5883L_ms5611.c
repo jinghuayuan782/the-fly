@@ -52,6 +52,7 @@
 #include "stm32_legacy.h"
 
 #include "i2cdev.h"
+#include "i2c_drv.h"
 // #include "lps25h.h"
 #include "mpu6050.h"
 #include "hmc5883l.h"
@@ -409,6 +410,9 @@ static void sensorsDeviceInit(void)
     };
 
     i2cdevInit(I2C0_DEV);
+    
+    i2cdrvScanBus(&sensorsBus);
+    
     mpu6050Init(I2C0_DEV);
 
     if (mpu6050TestConnection() == true) {

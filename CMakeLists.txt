@@ -11,7 +11,7 @@ set(PLANE_COMPONENT_DIRS "./components/core"
                         "./components/drivers/spi_devices"
                          "./components/lib" )
 
-set(EXTRA_COMPONENT_DIRS "${EXTRA_COMPONENT_DIRS} ${PLANE_COMPONENT_DIRS}")
+list(APPEND EXTRA_COMPONENT_DIRS ${PLANE_COMPONENT_DIRS})
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(ESPDrone)

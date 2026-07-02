@@ -56,6 +56,11 @@ void mpu6050Init(I2C_Dev *i2cPort)
     devAddr = MPU6050_ADDRESS_AD0_LOW;
     isInit = true;
 
+    if (!mpu6050TestConnection()) {
+        DEBUG_PRINTW("MPU6050 not found at address 0x%02X, trying 0x%02X...\n", 
+                     MPU6050_ADDRESS_AD0_LOW, MPU6050_ADDRESS_AD0_HIGH);
+        devAddr = MPU6050_ADDRESS_AD0_HIGH;
+    }
 }
 
 bool mpu6050Test(void)

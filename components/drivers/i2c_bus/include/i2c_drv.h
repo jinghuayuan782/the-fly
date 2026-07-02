@@ -58,6 +58,8 @@ extern I2cDrv sensorsBus;
  */
 void i2cdrvInit(I2cDrv *i2c);
 
+void i2cdrvScanBus(I2cDrv *i2c);
+
 /**
  * Send or receive a message over the I2C bus.
  *
