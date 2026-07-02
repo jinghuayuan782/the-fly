@@ -254,7 +254,6 @@ void wifiInit(void)
     if (isInit) {
         return;
     }
-    // This should probably be reduced to a CRTP packet size
     udpDataRx = xQueueCreate(16, sizeof(UDPPacket));
     DEBUG_QUEUE_MONITOR_REGISTER(udpDataRx);
     udpDataTx = xQueueCreate(16, sizeof(UDPPacket));
@@ -279,31 +278,52 @@ void wifiInit(void)
     ESP_ERROR_CHECK(esp_wifi_get_mac(ESP_IF_WIFI_AP, mac));
     sprintf(WIFI_SSID, "%s_%02X%02X%02X%02X%02X%02X", CONFIG_WIFI_BASE_SSID, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
+    // 修复WPA3兼容问题：纯WPA2 + 关闭PMF
     wifi_config_t wifi_config = {
         .ap = {
             .channel = WIFI_CH,
             .max_connection = WIFI_MAX_STA_CONN,
             .authmode = WIFI_AUTH_WPA2_PSK,
+            .pmf_cfg = {
+                .required = false,
+                .optional = false,
+            },
         },
     };
 
-    memcpy(wifi_config.ap.ssid, WIFI_SSID, strlen(WIFI_SSID) + 1) ;
+    // 安全字符串拷贝防止数组越界
+    strncpy((char*)wifi_config.ap.ssid, WIFI_SSID, sizeof(wifi_config.ap.ssid) - 1);
+    wifi_config.ap.ssid[sizeof(wifi_config.ap.ssid) - 1] = '\0';
     wifi_config.ap.ssid_len = strlen(WIFI_SSID);
-    memcpy(wifi_config.ap.password, WIFI_PWD, strlen(WIFI_PWD) + 1) ;
+    strncpy((char*)wifi_config.ap.password, WIFI_PWD, sizeof(wifi_config.ap.password) - 1);
+    wifi_config.ap.password[sizeof(wifi_config.ap.password) - 1] = '\0';
 
     if (strlen(WIFI_PWD) == 0) {
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
+    // ===================== WiFi增强核心代码 =====================
+    // 1. 设置硬件最大发射功率 78 = 19.5dBm（ESP32-WROOM-1上限）
+    ESP_ERROR_CHECK(esp_wifi_set_max_tx_power(78));
+    // 2. 完全关闭WiFi省电休眠，杜绝周期性断连、延迟抖动
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+    // 3. 强制20MHz窄带宽，提升电机干扰环境下抗干扰能力
+    ESP_ERROR_CHECK(esp_wifi_set_bandwidth(ESP_IF_WIFI_AP, WIFI_BW_HT20));
+    // ==========================================================
+
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
     esp_wifi_set_channel(WIFI_CH, WIFI_SECOND_CHAN_NONE);
+
+    // ESP-NOW 相关逻辑保留不变
     espnow_config_t espnow_config = ESPNOW_INIT_CONFIG_DEFAULT();
     espnow_init(&espnow_config);
     esp_event_handler_register(ESP_EVENT_ESPNOW, ESP_EVENT_ANY_ID, app_espnow_event_handler, NULL);
     ESP_ERROR_CHECK(espnow_ctrl_responder_bind(30 * 1000, -55, NULL));
     espnow_ctrl_responder_data(espnow_ctrl_data_cb);
+
+    // 静态AP IP配置不变
     esp_netif_ip_info_t ip_info = {
         .ip.addr = ipaddr_addr("192.168.43.42"),
         .netmask.addr = ipaddr_addr("255.255.255.0"),
