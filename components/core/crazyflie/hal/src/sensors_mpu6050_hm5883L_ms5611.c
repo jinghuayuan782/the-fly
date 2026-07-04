@@ -405,7 +405,7 @@ static void sensorsDeviceInit(void)
     isBarometerPresent = false;
 
     // Wait for sensors to startup
-    while (xTaskGetTickCount() < 2000){
+    while (xTaskGetTickCount() < M2T(2000)){
         vTaskDelay(M2T(50));
     };
 
@@ -417,13 +417,12 @@ static void sensorsDeviceInit(void)
 
     if (mpu6050TestConnection() == true) {
         DEBUG_PRINTI("MPU6050 I2C connection [OK].\n");
+        isMpu6050TestPassed = true;
     } else {
         DEBUG_PRINTE("MPU6050 I2C connection [FAIL].\n");
-        DEBUG_PRINTE("Please power off and power on the device.\n");
-        while (1) 
-        {
-            vTaskDelay(M2T(100));
-        }
+        DEBUG_PRINTE("Continuing without MPU6050 sensor...\n");
+        isMpu6050TestPassed = false;
+        return;
     }
 
     mpu6050Reset();
@@ -685,6 +684,10 @@ void sensorsMpu6050Hmc5883lMs5611Init(void)
 
     sensorsBiasObjInit(&gyroBiasRunning);
     sensorsDeviceInit();
+    if (!isMpu6050TestPassed) {
+        DEBUG_PRINTE("MPU6050 not initialized, skipping interrupt and task creation.\n");
+        return;
+    }
     sensorsInterruptInit();
     sensorsTaskInit();
     isInit = true;

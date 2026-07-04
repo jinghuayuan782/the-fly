@@ -37,7 +37,7 @@ static esp_adc_cal_characteristics_t *adc_chars;
 #ifdef CONFIG_IDF_TARGET_ESP32
 static const adc_channel_t channel = ADC_CHANNEL_7; //GPIO35 if ADC1
 #elif defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32S3)
-static const adc_channel_t channel = ADC_CHANNEL_1;     // GPIO2 if ADC1
+static const adc_channel_t channel = ADC_CHANNEL_3;     // GPIO4 if ADC1
 #endif
 
 static const adc_bits_width_t width = ADC_WIDTH_MAX-1;

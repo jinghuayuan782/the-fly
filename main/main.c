@@ -35,6 +35,10 @@
 
 void app_main()
 {
+    printf("App main starting...\n");
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    printf("Delay done, continuing...\n");
+
     /*
     * Initialize the platform and Launch the system task
     * app_main will initialize and start everything
